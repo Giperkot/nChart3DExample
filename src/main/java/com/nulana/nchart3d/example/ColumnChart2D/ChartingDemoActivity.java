@@ -43,25 +43,34 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
-import com.nulana.NChart.*;
+
+import com.nulana.NChart.NChartBrush;
+import com.nulana.NChart.NChartBrushScale;
+import com.nulana.NChart.NChartColumnSeries;
+import com.nulana.NChart.NChartCrosshair;
+import com.nulana.NChart.NChartCrosshairDelegate;
+import com.nulana.NChart.NChartFont;
+import com.nulana.NChart.NChartMargin;
+import com.nulana.NChart.NChartPoint;
+import com.nulana.NChart.NChartPointState;
+import com.nulana.NChart.NChartSeries;
+import com.nulana.NChart.NChartSeriesDataSource;
+import com.nulana.NChart.NChartSolidColorBrush;
+import com.nulana.NChart.NChartTooltip;
+import com.nulana.NChart.NChartView;
 import com.nulana.nchart3d.example.ColumnChart2D.dataSource.DateAxisDataSource;
 import com.nulana.nchart3d.example.ColumnChart2D.dataSource.NumberAxisDataSource;
 import com.opencsv.CSVReader;
 
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
-
-import static com.nulana.nchart3d.example.ColumnChart2D.ConstHelper.dateFormat;
 
 public class ChartingDemoActivity extends Activity implements NChartSeriesDataSource, NChartCrosshairDelegate {
     private NChartView mNChartView;
 
     private NChartPoint[] chartPoints;
+    private NChartBrushScale brushScale;
 
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -107,7 +116,7 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
 
         Number[] numbers = {20, 40, 60};
 
-        NChartBrushScale nChartBrushScale = new NChartBrushScale(brushes, numbers);
+        brushScale = new NChartBrushScale(brushes, numbers);
 
         // Create crosshair.
         NChartCrosshair cs = new NChartCrosshair();
@@ -133,12 +142,14 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
 
         // Add tooltip to the hair parallel to Y-Axis.
         cs.getXHair().setTooltip(createTooltip());
+        /*cs.setShouldJumpToTouch(true);
+        cs.getYHair().setDraggable(false);*/
         updateTooltipText(cs.getXHair().getTooltip(), cs.getXHair().getValue(), cs);
 
         // Add crosshair to the chart's coordinate system.
 //        mNChartView.getChart().getCartesianSystem().addCrosshair(cs);
 
-        series.setScale(nChartBrushScale);
+        series.setScale(brushScale);
 //        series.setBrush(new NChartSolidColorBrush(Color.argb(255, 97, 205, 232)));
         series.setDataSource(this);
         mNChartView.getChart().addSeries(series);
@@ -230,5 +241,6 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
         chartCrosshair.getYHair().setValue(DataStore.waPrice[(int)value]);
 
         tooltip.setText(String.valueOf(DataStore.waPrice[(int)value]));
+        tooltip.setBackground(brushScale.brushForValue(DataStore.waPrice[(int)value]));
     }
 }
