@@ -44,6 +44,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 
+import com.nulana.NChart.NChartAreaSeries;
 import com.nulana.NChart.NChartBrush;
 import com.nulana.NChart.NChartBrushScale;
 import com.nulana.NChart.NChartColumnSeries;
@@ -69,7 +70,7 @@ import java.util.List;
 public class ChartingDemoActivity extends Activity implements NChartSeriesDataSource, NChartCrosshairDelegate {
     private NChartView mNChartView;
 
-    private NChartPoint[] chartPoints;
+//    private NChartPoint[] chartPoints;
     private NChartBrushScale brushScale;
 
     protected void onCreate(Bundle bundle) {
@@ -81,15 +82,18 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
             csvReader = new CSVReader(new InputStreamReader(getAssets().open("usd.csv")));
             List<String[]> usdIndexList = csvReader.readAll();
 
-            double[] waPrices = new double[usdIndexList.size()];
+            double[] waPricesToday = new double[usdIndexList.size()];
+            double[] waPriceTomorrow = new double[usdIndexList.size()];
             Date[] tradeDates = new Date[usdIndexList.size()];
 
             for (int i = 1; i < usdIndexList.size(); ++i) {
-                waPrices[i] = Double.parseDouble(usdIndexList.get(i)[14]);
-                tradeDates[i] = ConstHelper.dateFormat.parse(usdIndexList.get(i)[5]);
+                waPricesToday[i] = Double.parseDouble(usdIndexList.get(i)[3]);
+                waPriceTomorrow[i] = Double.parseDouble(usdIndexList.get(i)[5]);
+                tradeDates[i] = ConstHelper.dateFormat.parse(usdIndexList.get(i)[2]);
             }
 
-            DataStore.waPrice = waPrices;
+            DataStore.waPriceToday = waPricesToday;
+            DataStore.waPriceTomorrow = waPriceTomorrow;
             DataStore.tradeDate = tradeDates;
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,7 +109,8 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
 
         mNChartView.getChart().setLicenseKey("FcsuLW6+CthCt1B2TfJdiT/J9NgozqBEg33qaUnXlLwH8y1iLe6WAQBizcGf47tJ+BXfxI9FbhYp1so5YCfE9llZ1WYNISzPFtX8+JyR0OJV9nVVF0rRZIfIKAdD1JRKHUqA58n8YCS0gXbO56+SGxE9H/5YsoF6c4P0fqi5tc75TwfHb6xBSNuhWWjlqJXhNQ7lQDEQkMcPHRVQ6lwuJB/xMowmFrN6+MXHDI+JZsqCBrKr/8OTkoLsQLNpYrAZt1XJw7jnt+d9GLQFb70tmK9y5rBQyZo14DcR5kyzHEnlai5RqtxV9nA/LOC5HVf9klxJmezuODb+GfXzxFauOz7nDmyFgbg8jqOrDwUv9ZLbVao/Yu2Vpim1qklbT/MsSrHEzSD+/OcAUZ7l6csoDtD+u0o8EGaQI39bclc9f3qNZsYRJfA4YRurT0OaHItjvJx+aCxjm4mlhb4HkVyyiEkRoZOZWlCHQ+FYrXe5TUG23tMq4muOhuBm/4RQFhFWlQ4evV2AAf9fHkLdgcUzssLoM+V0Svhm8sPLZpOl3vMq/F9UBUQNnNgNk59NaZWfkT2oLiqeCU2mkAjl6s+Y0snRpKlDJkrP3f20gFfD4iFsrtZuPitGdWBdOMlNvBdB4Ru+zzsKBXBU6refw5qeA/xAwzGq6VGHUgM+2X8EWuk=");
         mNChartView.getChart().getCartesianSystem().setMargin(new NChartMargin(10.0f, 10.0f, 10.0f, 20.0f));
-        NChartColumnSeries series = new NChartColumnSeries();
+        NChartColumnSeries todayUsdSeries = new NChartColumnSeries();
+        NChartAreaSeries tommorowUsdSeries = new NChartAreaSeries();
 
         NChartBrush[] brushes = {
                 new NChartSolidColorBrush(Color.CYAN),
@@ -146,13 +151,16 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
         cs.getYHair().setDraggable(false);*/
         updateTooltipText(cs.getXHair().getTooltip(), cs.getXHair().getValue(), cs);
 
-        // Add crosshair to the chart's coordinate system.
-//        mNChartView.getChart().getCartesianSystem().addCrosshair(cs);
+        todayUsdSeries.tag = 1;
+        todayUsdSeries.setDataSource(this);
+        todayUsdSeries.setBrush(new NChartSolidColorBrush(Color.argb(255, 0, 255, 0)));
 
-        series.setScale(brushScale);
-//        series.setBrush(new NChartSolidColorBrush(Color.argb(255, 97, 205, 232)));
-        series.setDataSource(this);
-        mNChartView.getChart().addSeries(series);
+        tommorowUsdSeries.setBrush(new NChartSolidColorBrush(Color.argb(150, 0, 0, 232)));
+        tommorowUsdSeries.setDataSource(this);
+        tommorowUsdSeries.tag = 2;
+
+        mNChartView.getChart().addSeries(todayUsdSeries);
+        mNChartView.getChart().addSeries(tommorowUsdSeries);
         mNChartView.getChart().updateData();
         mNChartView.getChart().getCartesianSystem().getYAxis().setDataSource(new NumberAxisDataSource());
         mNChartView.getChart().getCartesianSystem().getXAxis().setDataSource(new DateAxisDataSource());
@@ -170,20 +178,26 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
         mNChartView.onPause();
     }
 
-    public NChartPoint[] points(NChartSeries series) {
-
-        if (chartPoints != null) {
-            return chartPoints;
+    private void fillPointArray (double[] arr, NChartPoint[] chartPoints, NChartSeries series) {
+        chartPoints[0] = new NChartPoint(NChartPointState.PointStateAlignedToXWithXY(0, arr[0]), series);
+        for (int i = 1; i < arr.length; ++i) {
+            chartPoints[i] = new NChartPoint(NChartPointState.PointStateAlignedToXWithXY(i, arr[i]), series);
         }
 
-        double[] waPrices = DataStore.waPrice;
-//        Date[] tradeDates = DataStore.tradeDate;
+//        return chartPoints;
+    }
 
-        chartPoints = new NChartPoint[waPrices.length];
+    public NChartPoint[] points(NChartSeries series) {
+
+        NChartPoint[] chartPoints;
 
         try {
-            for (int i = 1; i < waPrices.length; ++i) {
-                chartPoints[i] = new NChartPoint(NChartPointState.PointStateAlignedToXWithXY(i, waPrices[i]), series);
+            if (series.tag == 1) {
+                chartPoints = new NChartPoint[DataStore.waPriceToday.length];
+                fillPointArray(DataStore.waPriceToday, chartPoints, series);
+            } else {
+                chartPoints = new NChartPoint[DataStore.waPriceTomorrow.length];
+                fillPointArray(DataStore.waPriceTomorrow, chartPoints, series);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -238,9 +252,9 @@ public class ChartingDemoActivity extends Activity implements NChartSeriesDataSo
             return;
         }
 
-        chartCrosshair.getYHair().setValue(DataStore.waPrice[(int)value]);
+        chartCrosshair.getYHair().setValue(DataStore.waPriceToday[(int)value]);
 
-        tooltip.setText(String.valueOf(DataStore.waPrice[(int)value]));
-        tooltip.setBackground(brushScale.brushForValue(DataStore.waPrice[(int)value]));
+        tooltip.setText(String.valueOf(DataStore.waPriceToday[(int)value]));
+        tooltip.setBackground(brushScale.brushForValue(DataStore.waPriceToday[(int)value]));
     }
 }

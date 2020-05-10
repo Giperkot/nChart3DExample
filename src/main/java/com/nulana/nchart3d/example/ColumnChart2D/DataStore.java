@@ -4,7 +4,9 @@ import java.util.Date;
 
 public class DataStore {
 
-    public static double[] waPrice;
+    public static double[] waPriceToday;
+
+    public static double[] waPriceTomorrow;
 
     public static Date[] tradeDate;
 
